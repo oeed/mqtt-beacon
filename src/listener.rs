@@ -58,15 +58,15 @@ impl Listener {
     let receiver = central.event_receiver().unwrap();
     while let Ok(message) = receiver.recv() {
       use CentralEvent::*;
-      let service = match message.clone() {
+      if is_debug {
+        println!("{:?}", &message);
+      }
+      let service = match message {
         ServiceDataAdvertisement { service, data, .. } => Some((service, data)),
         _ => None,
       };
 
       if let Some((uuid, service_data)) = service {
-        if is_debug {
-          println!("UUID: {:?}, Data: {:?}", uuid, service_data);
-        }
         if uuid == self.beacon_uuid {
           // this is the right uuid, but it could be another beacon
           if service_data == self.service_data {
