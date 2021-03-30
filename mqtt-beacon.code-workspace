@@ -1,0 +1,66 @@
+{
+  "folders": [{
+      "path": "."
+    }
+  ],
+  "settings": {
+    "editor.detectIndentation": false,
+    "editor.tabSize": 2,
+    "editor.formatOnSave": true,
+    "editor.defaultFormatter": "matklad.rust-analyzer",
+    "rust-analyzer.rustfmt.extraArgs": [
+      "+nightly"
+    ],
+    "rust-analyzer.inlayHints.enable": false,
+    // "rust-analyzer.cargo.target": "armv7-unknown-linux-gnueabihf"
+    // "rust-analyzer.cargo.features": ["arm"]
+
+  },
+  "launch": {
+    "configurations": [{
+      "type": "lldb",
+      "request": "launch",
+      "name": "MQTT Beacon",
+      "preLaunchTask": "build",
+      "program": "${workspaceRoot:mqtt-beacon}/target/debug/mqtt-beacon",
+      "cwd": "${workspaceRoot:mqtt-beacon}",
+      "sourceLanguages": ["rust"],
+      "terminal": "integrated",
+      "console": "integratedTerminal",
+      "env": {
+        "RUST_LOG": "info"
+      }
+    }]
+  },
+  "tasks": {
+    "version": "2.0.0",
+    "tasks": [
+      {
+        "type": "cargo",
+        "command": "build",
+        "problemMatcher": [
+          "$rustc"
+        ],
+        "group": {
+          "kind": "build",
+          "isDefault": true
+        },
+        "label": "build",
+        "options": {
+          "cwd": "${workspaceRoot:mqtt-beacon}",
+        }
+      },
+      {
+        "type": "cargo",
+        "command": "check",
+        "problemMatcher": [
+          "$rustc"
+        ],
+        "label": "check",
+        "options": {
+          "cwd": "${workspaceRoot:mqtt-beacon}",
+        }
+      }
+    ]
+  }
+}
