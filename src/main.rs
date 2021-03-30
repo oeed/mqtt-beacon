@@ -9,7 +9,7 @@ fn main() {
   let (send_channel, mut connection, mut client) =
     MqttClient::with_config(config.mqtt_client).expect("unable to start mqtt client");
 
-  let listener = Listener::with_config(config.listener);
+  let listener = config.listener;
   thread::spawn(move || listener.listen(send_channel));
 
   // drive the event loop forever

@@ -7,25 +7,14 @@ use btleplug::bluez::{adapter::Adapter, manager::Manager};
 use btleplug::corebluetooth::manager::Manager;
 use rumqttc::QoS;
 use serde::Deserialize;
+use uuid::Uuid;
 
 use crate::mqtt_client::{MqttPublish, PublishSender};
 
 #[derive(Debug, Deserialize)]
-pub struct ListenerConfig {
-  /// The bluetooth address of the beacon
-  beacon_address: String,
-
-  /// Topic to broadcast to when the beacon is present
-  topic: String,
-  /// Payload to broadcast when present
-  present_payload: String,
-}
-
-#[derive(Debug)]
 pub struct Listener {
   /// The bluetooth address of the beacon
-  beacon_address: BDAddr,
-
+  beacon_uuid: Uuid,
   /// Topic to broadcast to when the beacon is present
   topic: String,
   /// Payload to broadcast when present
@@ -33,14 +22,6 @@ pub struct Listener {
 }
 
 impl Listener {
-  pub fn with_config(config: ListenerConfig) -> Self {
-    Listener {
-      beacon_address: BDAddr::from_str(&config.beacon_address).expect("invalid beacon_address"),
-      topic: config.topic,
-      present_payload: config.present_payload,
-    }
-  }
-
   pub fn listen(self, channel: PublishSender) {
     let manager = Manager::new().unwrap();
 
@@ -56,13 +37,13 @@ impl Listener {
     let receiver = central.event_receiver().unwrap();
     while let Ok(message) = receiver.recv() {
       use CentralEvent::*;
-      let address = match message {
-        DeviceDiscovered(address) | ServiceDataAdvertisement { address, .. } => Some(address),
+      let service = match message.clone() {
+        ServiceDataAdvertisement { service, .. } => Some(service),
         _ => None,
       };
 
-      if let Some(address) = address {
-        if address == self.beacon_address {
+      if let Some(service) = service {
+        if service == self.beacon_uuid {
           // this is our beacon
           if let Err(_) = channel.send(MqttPublish {
             topic: self.topic.clone(),
