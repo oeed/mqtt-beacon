@@ -1,8 +1,6 @@
-use std::str::FromStr;
-
-use btleplug::api::{BDAddr, Central, CentralEvent};
+use btleplug::api::{bleuuid::uuid_from_u16, Central, CentralEvent};
 #[cfg(target_os = "linux")]
-use btleplug::bluez::{adapter::Adapter, manager::Manager};
+use btleplug::bluez::manager::Manager;
 #[cfg(target_os = "macos")]
 use btleplug::corebluetooth::manager::Manager;
 use rumqttc::QoS;
@@ -12,9 +10,23 @@ use uuid::Uuid;
 use crate::mqtt_client::{MqttPublish, PublishSender};
 
 #[derive(Debug, Deserialize)]
+pub struct ListenerConfig {
+  /// The bluetooth address of the beacon
+  beacon_uuid: u16,
+  /// The service data the beacon emits
+  service_data: Vec<u8>,
+  /// Topic to broadcast to when the beacon is present
+  topic: String,
+  /// Payload to broadcast when present
+  present_payload: String,
+}
+
+#[derive(Debug)]
 pub struct Listener {
   /// The bluetooth address of the beacon
   beacon_uuid: Uuid,
+  /// The service data the beacon emits
+  service_data: Vec<u8>,
   /// Topic to broadcast to when the beacon is present
   topic: String,
   /// Payload to broadcast when present
@@ -22,7 +34,16 @@ pub struct Listener {
 }
 
 impl Listener {
-  pub fn listen(self, channel: PublishSender) {
+  pub fn with_config(config: ListenerConfig) -> Self {
+    Listener {
+      beacon_uuid: uuid_from_u16(config.beacon_uuid),
+      service_data: config.service_data,
+      topic: config.topic,
+      present_payload: config.present_payload,
+    }
+  }
+
+  pub fn listen(self, channel: PublishSender, is_debug: bool) {
     let manager = Manager::new().unwrap();
 
     // get the first bluetooth adapter
@@ -38,21 +59,29 @@ impl Listener {
     while let Ok(message) = receiver.recv() {
       use CentralEvent::*;
       let service = match message.clone() {
-        ServiceDataAdvertisement { service, .. } => Some(service),
+        ServiceDataAdvertisement { service, data, .. } => Some((service, data)),
         _ => None,
       };
 
-      if let Some(service) = service {
-        if service == self.beacon_uuid {
-          // this is our beacon
-          if let Err(_) = channel.send(MqttPublish {
-            topic: self.topic.clone(),
-            qos: QoS::AtLeastOnce,
-            retain: false,
-            payload: self.present_payload.clone(),
-          }) {
-            // channel has ended
-            return;
+      if let Some((uuid, service_data)) = service {
+        if is_debug {
+          println!("UUID: {:?}, Data: {:?}", uuid, service_data);
+        }
+        if uuid == self.beacon_uuid {
+          // this is the right uuid, but it could be another beacon
+          if service_data == self.service_data {
+            if let Err(_) = channel.send(MqttPublish {
+              topic: self.topic.clone(),
+              qos: QoS::AtLeastOnce,
+              retain: false,
+              payload: self.present_payload.clone(),
+            }) {
+              // channel has ended
+              return;
+            }
+          }
+          else if is_debug {
+            println!("UUID matched, but service data didn't");
           }
         }
       }
