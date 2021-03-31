@@ -49,6 +49,8 @@ impl Listener {
     // get the first bluetooth adapter
     let adapters = manager.adapters().unwrap();
     let central = adapters.into_iter().nth(0).unwrap();
+    central.filter_duplicates(false);
+    central.active(false);
 
     // start scanning for devices
     central.start_scan().unwrap();
