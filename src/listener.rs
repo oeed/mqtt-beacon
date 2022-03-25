@@ -1,3 +1,8 @@
+use std::{
+  sync::mpsc::{channel, Receiver},
+  thread,
+};
+
 use btleplug::api::BDAddr;
 #[cfg(target_os = "linux")]
 use rumble::{
@@ -10,7 +15,8 @@ pub struct Listener;
 
 impl Listener {
   #[cfg(target_os = "linux")]
-  pub fn listen(on_beacon: impl Fn(BDAddr) -> ()) {
+  pub fn listen() -> Receiver<BDAddr> {
+    let (tx, rx) = channel();
     let manager = Manager::new().unwrap();
 
     // get the first bluetooth adapter
@@ -30,18 +36,25 @@ impl Listener {
 
     central.on_event(Box::new(|event| match event {
       CentralEvent::DeviceDiscovered(address) | CentralEvent::DeviceUpdated(address) => {
-        on_beacon(BDAddr::from(address.address));
+        tx.send(BDAddr::from(address.address)).unwrap();
       }
       _ => (),
     }));
+
+    rx
   }
 
   #[cfg(target_os = "macos")]
-  pub fn listen(on_beacon: impl Fn(BDAddr) -> ()) {
-    loop {
-      // just demo/debug
-      on_beacon("01:23:45:67:89:AB".parse().unwrap());
-      std::thread::sleep(std::time::Duration::from_secs(2));
-    }
+  pub fn listen() -> Receiver<BDAddr> {
+    let (tx, rx) = channel();
+    thread::spawn(move || {
+      loop {
+        // just demo/debug
+        tx.send("01:23:45:67:89:AB".parse().unwrap()).unwrap();
+        std::thread::sleep(std::time::Duration::from_secs(2));
+      }
+    });
+
+    rx
   }
 }

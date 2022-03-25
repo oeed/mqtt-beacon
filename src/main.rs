@@ -18,14 +18,18 @@ fn run() {
   let (send_channel, mut connection, mut client) =
     MqttClient::with_config(config.mqtt_client).expect("unable to start mqtt client");
 
-  // let beacon = config.beacons;
   thread::spawn(move || {
-    let send_channel = send_channel;
-    Listener::listen(|address| {
-      for beacon_config in &config.beacons {
-        beacon_config.on_discovery(address, send_channel.clone());
+    let rx = Listener::listen();
+    loop {
+      if let Ok(address) = rx.recv() {
+        for beacon_config in &config.beacons {
+          beacon_config.on_discovery(address, &send_channel);
+        }
       }
-    })
+      else {
+        return;
+      }
+    }
   });
 
   // drive the event loop forever
