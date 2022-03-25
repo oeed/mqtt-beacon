@@ -10,7 +10,8 @@ edition = "2018"
 # toml = "0.5.8"
 # serde = { version = "1.0", features = ["derive"] }
 # rumqttc = "0.5.0"
-btleplug = { version = "0.9" }
+# btleplug = { version = "0.9" }
+rumble = "0.3.0"
 futures = "0.3"
 tokio = { version = "1.17.0", features = ["macros", "rt", "rt-multi-thread"] }
 # uuid = { version = "0.8", features = ["serde"] }
