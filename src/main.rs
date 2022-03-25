@@ -31,11 +31,6 @@ use rumble::{
   bluez::manager::Manager,
 };
 
-async fn get_central(manager: &Manager) -> Adapter {
-  let adapters = manager.adapters().await.unwrap();
-  adapters.into_iter().nth(0).unwrap()
-}
-
 pub fn main() {
   let manager = Manager::new().unwrap();
 
@@ -55,7 +50,7 @@ pub fn main() {
   central.start_scan().unwrap();
 
   central.on_event(Box::new(|event| {
-    println!("{:}", event);
+    println!("{:?}", event);
   }));
 
 

@@ -473,8 +473,7 @@ dependencies = [
 [[package]]
 name = "rumble"
 version = "0.3.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "04b88ab0d55dd44d2a7f8d4ad4dc5adcdf2240fcc59198a8fd1b460faa9c0a48"
+source = "git+https://github.com/mwylde/rumble#fe951504f7271067109cb675639a5d911683b5fb"
 dependencies = [
  "backtrace",
  "bitflags",
