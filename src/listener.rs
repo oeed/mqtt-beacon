@@ -1,7 +1,7 @@
 use btleplug::api::BDAddr;
 #[cfg(target_os = "linux")]
 use rumble::{
-  api::{Central, Peripheral, UUID},
+  api::{Central, CentralEvent},
   bluez::manager::Manager,
 };
 
