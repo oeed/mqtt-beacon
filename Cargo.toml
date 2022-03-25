@@ -2,7 +2,7 @@
 name = "mqtt-beacon"
 version = "0.1.0"
 authors = ["Oliver Cooper <oliver.cooper@me.com>"]
-edition = "2018"
+edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -10,5 +10,10 @@ edition = "2018"
 toml = "0.5.8"
 serde = { version = "1.0", features = ["derive"] }
 rumqttc = "0.5.0"
-btleplug = { version = "0.7.1", features = ["serde"] }
-uuid = { version = "0.8", features = ["serde"] }
+btleplug = { version = "0.9", features = ["serde"] }
+log = "0.4"
+thiserror = "1.0"
+# value-bag = { version = "=1.0.0-alpha.8" }
+
+[target.'cfg(linux)'.dependencies]
+rumble = { git = "https://github.com/mwylde/rumble" }

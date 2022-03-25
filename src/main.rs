@@ -1,19 +1,32 @@
-use std::{fs, thread};
+use std::{fs, thread, time::Duration};
 
 use mqtt_beacon::{config::Config, listener::Listener, mqtt_client::MqttClient};
 
 fn main() {
-  let args: Vec<String> = std::env::args().collect();
-  let is_debug = args.get(1).map_or(false, |arg| arg == "debug");
+  loop {
+    let err = run();
+    log::error!("Error occurred, restarting in 5 seconds: {:?}", err);
+    // wait some time for the broker to come back online
+    thread::sleep(Duration::from_secs(5));
+  }
+}
 
+fn run() {
   let config = fs::read_to_string("beacon-config.toml").expect("unable to read beacon-config.toml");
   let config: Config = toml::from_str(&config).expect("unable to parse beacon-config.toml");
 
   let (send_channel, mut connection, mut client) =
     MqttClient::with_config(config.mqtt_client).expect("unable to start mqtt client");
 
-  let listener = Listener::with_config(config.listener);
-  thread::spawn(move || listener.listen(send_channel, is_debug));
+  // let beacon = config.beacons;
+  thread::spawn(move || {
+    let send_channel = send_channel;
+    Listener::listen(|address| {
+      for beacon_config in &config.beacons {
+        beacon_config.on_discovery(address, send_channel.clone());
+      }
+    })
+  });
 
   // drive the event loop forever
   thread::spawn(move || connection.iter().for_each(drop));
