@@ -32,12 +32,14 @@ impl Listener {
     // start scanning for devices
     central.start_scan().unwrap();
 
-    central.on_event(Box::new(move |event| match event {
+    central.on_event(Box::new(move |event| {
       log::debug!("BLE event: {:?}", &event);
-      CentralEvent::DeviceDiscovered(address) | CentralEvent::DeviceUpdated(address) => {
-        tx.send(BDAddr::from(address.address)).unwrap();
+      match event {
+        CentralEvent::DeviceDiscovered(address) | CentralEvent::DeviceUpdated(address) => {
+          tx.send(BDAddr::from(address.address)).unwrap();
+        }
+        _ => (),
       }
-      _ => (),
     }));
 
     rx
