@@ -39,7 +39,7 @@ impl Listener {
           let addr = address.address;
           // rumble stores the address backwards for some reason
           let address = [addr[5], addr[4], addr[3], addr[2], addr[1], addr[0]];
-          tx.send(BDAddr::from()).unwrap();
+          tx.send(BDAddr::from(address)).unwrap();
         }
         _ => (),
       }
