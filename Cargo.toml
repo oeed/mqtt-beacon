@@ -15,5 +15,5 @@ log = "0.4"
 thiserror = "1.0"
 # value-bag = { version = "=1.0.0-alpha.8" }
 
-[target.'cfg(linux)'.dependencies]
+[target.'cfg(target_os = "linux")'.dependencies]
 rumble = { git = "https://github.com/mwylde/rumble" }

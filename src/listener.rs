@@ -30,7 +30,7 @@ impl Listener {
 
     central.on_event(Box::new(|event| match event {
       CentralEvent::DeviceDiscovered(address) | CentralEvent::DeviceUpdated(address) => {
-        on_beacon(address);
+        on_beacon(BDAddr::from(address.address));
       }
       _ => (),
     }));

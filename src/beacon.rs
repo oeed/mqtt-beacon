@@ -14,17 +14,6 @@ pub struct BeaconConfig {
   present_payload: String,
 }
 
-
-#[derive(Debug, Deserialize)]
-pub struct BeaconAddress(String);
-
-#[cfg(target_os = "linux")]
-impl From<rumble::api::BDAddr> for BeaconAddress {
-  fn from(addr: BDAddr) -> Self {
-    BDAddr::from(addr.address)
-  }
-}
-
 impl BeaconConfig {
   pub fn on_discovery(&self, discovered_address: BDAddr, send_channel: PublishSender) {
     if discovered_address == self.beacon_address {
