@@ -17,6 +17,8 @@ pub struct BeaconConfig {
 impl BeaconConfig {
   pub fn on_discovery(&self, discovered_address: BDAddr, send_channel: &PublishSender) {
     if discovered_address == self.beacon_address {
+      log::debug!("Discovered known beacon: {}", &self.topic);
+
       // this is the beacon, publish
       if let Err(_) = send_channel.send(MqttPublish {
         topic: self.topic.clone(),

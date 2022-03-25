@@ -3,6 +3,8 @@ use std::{fs, thread, time::Duration};
 use mqtt_beacon::{config::Config, listener::Listener, mqtt_client::MqttClient};
 
 fn main() {
+  env_logger::init();
+
   loop {
     let err = run();
     log::error!("Error occurred, restarting in 5 seconds: {:?}", err);
@@ -22,6 +24,7 @@ fn run() {
     let rx = Listener::listen();
     loop {
       if let Ok(address) = rx.recv() {
+        log::debug!("Discovered: {:?}", &address);
         for beacon_config in &config.beacons {
           beacon_config.on_discovery(address, &send_channel);
         }

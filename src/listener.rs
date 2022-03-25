@@ -1,7 +1,4 @@
-use std::{
-  sync::mpsc::{channel, Receiver},
-  thread,
-};
+use std::sync::mpsc::{channel, Receiver};
 
 use btleplug::api::BDAddr;
 #[cfg(target_os = "linux")]
@@ -47,7 +44,7 @@ impl Listener {
   #[cfg(target_os = "macos")]
   pub fn listen() -> Receiver<BDAddr> {
     let (tx, rx) = channel();
-    thread::spawn(move || {
+    std::thread::spawn(move || {
       loop {
         // just demo/debug
         tx.send("01:23:45:67:89:AB".parse().unwrap()).unwrap();
