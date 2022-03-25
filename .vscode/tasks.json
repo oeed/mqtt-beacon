@@ -1,0 +1,13 @@
+{
+  // See https://go.microsoft.com/fwlink/?LinkId=733558
+  // for the documentation about the tasks.json format
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Build & Push",
+      "type": "shell",
+      "command": "set -o errexit && set -o nounset && set -o pipefail && set -o xtrace && readonly TARGET_ARCH=arm-unknown-linux-gnueabihf && readonly LINK_FLAGS='-L /usr/arm-linux-gnueabihf/lib/ -L /usr/lib/arm-linux-gnueabihf/ -L /lib/arm-linux-gnueabihf/' && RUSTFLAGS=${LINK_FLAGS} cross build --release --target=${TARGET_ARCH} && rsync -a ./target/arm-unknown-linux-gnueabihf/release/mqtt-beacon pi@garagedoor:/home/pi/mqtt-beacon",
+      "problemMatcher": []
+    }
+  ]
+}
