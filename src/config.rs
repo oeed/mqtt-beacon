@@ -1,6 +1,7 @@
 use serde::Deserialize;
 
-use crate::{beacon::BeaconConfig, mqtt_client::MqttClientConfig};
+use crate::beacon::BeaconConfig;
+use mqtt_garage::mqtt_client::MqttClientConfig;
 
 #[derive(Debug, Deserialize)]
 pub struct Config {

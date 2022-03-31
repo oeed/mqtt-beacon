@@ -1,4 +1,5 @@
 use thiserror::Error;
+use tokio::task::JoinError;
 
 pub type BeaconResult<T> = Result<T, BeaconError>;
 
@@ -8,4 +9,6 @@ pub enum BeaconError {
   MQTTClient(#[from] rumqttc::ClientError),
   #[error(transparent)]
   MQTTConnection(#[from] rumqttc::ConnectionError),
+  #[error(transparent)]
+  JoinError(#[from] JoinError),
 }

@@ -1,24 +1,25 @@
 use std::{fs, thread, time::Duration};
 
-use mqtt_beacon::{config::Config, listener::Listener, mqtt_client::MqttClient};
+use mqtt_beacon::{config::Config, error::BeaconError, listener::Listener};
+use mqtt_garage::mqtt_client::MqttClient;
 
-fn main() {
+#[tokio::main]
+async fn main() {
   env_logger::init();
 
   loop {
-    let err = run();
+    let err = run().await;
     log::error!("Error occurred, restarting in 5 seconds: {:?}", err);
     // wait some time for the broker to come back online
     thread::sleep(Duration::from_secs(5));
   }
 }
 
-fn run() {
+async fn run() -> BeaconError {
   let config = fs::read_to_string("beacon-config.toml").expect("unable to read beacon-config.toml");
   let config: Config = toml::from_str(&config).expect("unable to parse beacon-config.toml");
 
-  let (send_channel, mut connection, mut client) =
-    MqttClient::with_config(config.mqtt_client).expect("unable to start mqtt client");
+  let (send_channel, mut client) = MqttClient::with_config("mqtt-beacon", config.mqtt_client);
 
   thread::spawn(move || {
     let rx = Listener::listen();
@@ -28,15 +29,20 @@ fn run() {
         for beacon_config in &config.beacons {
           beacon_config.on_discovery(address, &send_channel);
         }
-      }
-      else {
+      } else {
         return;
       }
     }
   });
 
-  // drive the event loop forever
-  thread::spawn(move || connection.iter().for_each(drop));
+  client.announce().await.expect("failed to announce client");
 
-  client.send_messages().unwrap();
+  let mut receiver = client.receiver;
+  let receive = tokio::spawn(async move { receiver.receive_messages().await.unwrap() });
+
+  let mut sender = client.sender;
+  let send = tokio::spawn(async move { sender.send_messages().await.unwrap() });
+
+  // the two tasks will only end if an error occurs (most likely MQTT broker disconnection)
+  tokio::try_join!(receive, send).unwrap_err().into()
 }
