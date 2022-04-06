@@ -1,3 +1,5 @@
+use std::sync::mpsc::RecvError;
+
 use thiserror::Error;
 use tokio::task::JoinError;
 
@@ -11,4 +13,9 @@ pub enum BeaconError {
   MQTTConnection(#[from] rumqttc::ConnectionError),
   #[error(transparent)]
   JoinError(#[from] JoinError),
+  #[cfg(target_os = "linux")]
+  #[error(transparent)]
+  Rumble(#[from] rumble::Error),
+  #[error(transparent)]
+  Recv(#[from] RecvError),
 }

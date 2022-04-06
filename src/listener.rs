@@ -7,12 +7,14 @@ use rumble::{
   bluez::manager::Manager,
 };
 
+use crate::error::BeaconResult;
+
 #[derive(Debug)]
 pub struct Listener;
 
 impl Listener {
   #[cfg(target_os = "linux")]
-  pub fn listen() -> Receiver<BDAddr> {
+  pub fn listen() -> BeaconResult<Receiver<BDAddr>> {
     log::debug!("Starting BLE listen...");
     let (tx, rx) = channel();
     let manager = Manager::new().unwrap();
@@ -49,7 +51,7 @@ impl Listener {
   }
 
   #[cfg(target_os = "macos")]
-  pub fn listen() -> Receiver<BDAddr> {
+  pub fn listen() -> BeaconResult<Receiver<BDAddr>> {
     let (tx, rx) = channel();
     std::thread::spawn(move || {
       loop {
@@ -59,6 +61,6 @@ impl Listener {
       }
     });
 
-    rx
+    Ok(rx)
   }
 }
