@@ -21,7 +21,7 @@ impl Listener {
 
     // get the first bluetooth adapter
     let adapters = manager.adapters()?;
-    let mut adapter = adapters.into_iter().nth(0)?;
+    let mut adapter = adapters.into_iter().nth(0).unwrap();
 
     // reset the adapter -- clears out any errant state
     adapter = manager.down(&adapter)?;
