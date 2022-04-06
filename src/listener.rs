@@ -17,22 +17,22 @@ impl Listener {
   pub fn listen() -> BeaconResult<Receiver<BDAddr>> {
     log::debug!("Starting BLE listen...");
     let (tx, rx) = channel();
-    let manager = Manager::new().unwrap();
+    let manager = Manager::new()?;
 
     // get the first bluetooth adapter
-    let adapters = manager.adapters().unwrap();
-    let mut adapter = adapters.into_iter().nth(0).unwrap();
+    let adapters = manager.adapters()?;
+    let mut adapter = adapters.into_iter().nth(0)?;
 
     // reset the adapter -- clears out any errant state
-    adapter = manager.down(&adapter).unwrap();
-    adapter = manager.up(&adapter).unwrap();
+    adapter = manager.down(&adapter)?;
+    adapter = manager.up(&adapter)?;
 
     // connect to the adapter
-    let central = adapter.connect().unwrap();
+    let central = adapter.connect()?;
     central.active(false);
     central.filter_duplicates(false);
     // start scanning for devices
-    central.start_scan().unwrap();
+    central.start_scan()?;
 
     central.on_event(Box::new(move |event| {
       log::debug!("BLE event: {:?}", &event);
@@ -41,13 +41,13 @@ impl Listener {
           let addr = address.address;
           // rumble stores the address backwards for some reason
           let address = [addr[5], addr[4], addr[3], addr[2], addr[1], addr[0]];
-          tx.send(BDAddr::from(address)).unwrap();
+          tx.send(BDAddr::from(address))?;
         }
         _ => (),
       }
     }));
 
-    rx
+    Ok(rx)
   }
 
   #[cfg(target_os = "macos")]
