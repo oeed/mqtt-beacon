@@ -1,6 +1,5 @@
-use std::sync::mpsc::{RecvError, SendError};
+use std::sync::mpsc::RecvError;
 
-use btleplug::api::BDAddr;
 use thiserror::Error;
 use tokio::task::JoinError;
 
@@ -19,8 +18,6 @@ pub enum BeaconError {
   Rumble(String),
   #[error(transparent)]
   MpscRecv(#[from] RecvError),
-  #[error(transparent)]
-  MpscSend(#[from] SendError<BDAddr>),
 }
 
 #[cfg(target_os = "linux")]
