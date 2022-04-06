@@ -6,6 +6,7 @@ use mqtt_beacon::{
   listener::Listener,
 };
 use mqtt_garage::mqtt_client::MqttClient;
+use tokio::task::JoinHandle;
 
 #[tokio::main]
 async fn main() -> BeaconResult<()> {
@@ -46,5 +47,15 @@ async fn run() -> BeaconError {
   let send = tokio::spawn(async move { sender.send_messages().await });
 
   // the two tasks will only end if an error occurs (most likely MQTT broker disconnection)
-  tokio::try_join!(receive, send, listen).unwrap_err().into()
+  tokio::try_join!(flatten(receive), flatten(send), flatten(listen))
+    .unwrap_err()
+    .into()
+}
+
+async fn flatten<T, E: Into<BeaconError>>(handle: JoinHandle<Result<T, E>>) -> Result<T, BeaconError> {
+  match handle.await {
+    Ok(Ok(result)) => Ok(result),
+    Ok(Err(err)) => Err(err.into()),
+    Err(err) => Err(err.into()),
+  }
 }

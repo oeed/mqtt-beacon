@@ -1,5 +1,6 @@
 use std::sync::mpsc::RecvError;
 
+use mqtt_garage::error::GarageError;
 use thiserror::Error;
 use tokio::task::JoinError;
 
@@ -18,6 +19,8 @@ pub enum BeaconError {
   Rumble(String),
   #[error(transparent)]
   MpscRecv(#[from] RecvError),
+  #[error(transparent)]
+  Garage(#[from] GarageError),
 }
 
 #[cfg(target_os = "linux")]
