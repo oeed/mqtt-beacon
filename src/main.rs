@@ -11,7 +11,9 @@ use mqtt_garage::mqtt_client::MqttClient;
 async fn main() -> BeaconResult<()> {
   env_logger::init();
 
-  Err(run().await)
+  let err = run().await;
+  log::error!("{}", err);
+  Err(err)
 }
 
 async fn run() -> BeaconError {
@@ -38,10 +40,10 @@ async fn run() -> BeaconError {
   client.announce().await.expect("failed to announce client");
 
   let mut receiver = client.receiver;
-  let receive = tokio::spawn(async move { receiver.receive_messages().await.unwrap() });
+  let receive = tokio::spawn(async move { receiver.receive_messages().await });
 
   let mut sender = client.sender;
-  let send = tokio::spawn(async move { sender.send_messages().await.unwrap() });
+  let send = tokio::spawn(async move { sender.send_messages().await });
 
   // the two tasks will only end if an error occurs (most likely MQTT broker disconnection)
   tokio::try_join!(receive, send, listen).unwrap_err().into()
