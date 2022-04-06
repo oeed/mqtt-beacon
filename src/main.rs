@@ -12,9 +12,7 @@ use tokio::task::JoinHandle;
 async fn main() -> BeaconResult<()> {
   env_logger::init();
 
-  let err = run().await;
-  log::error!("{}", err);
-  Err(err)
+  Err(run().await)
 }
 
 async fn run() -> BeaconError {
