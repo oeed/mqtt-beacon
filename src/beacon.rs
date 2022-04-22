@@ -1,8 +1,7 @@
 use btleplug::api::BDAddr;
+use mqtt_garage::mqtt_client::{sender::PublishSender, MqttPublish};
 use rumqttc::QoS;
 use serde::Deserialize;
-
-use mqtt_garage::mqtt_client::{sender::PublishSender, MqttPublish};
 
 #[derive(Debug, Deserialize)]
 pub struct BeaconConfig {
