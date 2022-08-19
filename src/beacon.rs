@@ -1,7 +1,7 @@
 use btleplug::api::BDAddr;
 use mqtt_garage::mqtt_client::{sender::PublishSender, MqttPublish};
 use rumqttc::QoS;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Deserialize)]
 pub struct BeaconConfig {
@@ -9,8 +9,16 @@ pub struct BeaconConfig {
   beacon_address: BDAddr,
   /// Topic to broadcast to when the beacon is present
   topic: String,
-  /// Payload to broadcast when present
-  present_payload: String,
+  /// The device ID to use
+  device_id: String,
+}
+
+#[derive(Debug, Serialize)]
+struct PresencePayload<'a> {
+  #[serde(rename = "id")]
+  device_id: &'a str,
+  name: &'a str,
+  distance: f32,
 }
 
 impl BeaconConfig {
@@ -18,12 +26,18 @@ impl BeaconConfig {
     if discovered_address == self.beacon_address {
       log::debug!("Discovered known beacon: {}", &self.topic);
 
+      let payload = PresencePayload {
+        device_id: &self.device_id,
+        name: &self.device_id,
+        distance: 1.0,
+      };
+
       // this is the beacon, publish
       if let Err(_) = send_channel.send(MqttPublish {
         topic: self.topic.clone(),
         qos: QoS::AtLeastOnce,
         retain: false,
-        payload: self.present_payload.clone(),
+        payload: serde_json::to_string(&payload).expect("failed serialization"),
       }) {
         // channel has ended
         return;
