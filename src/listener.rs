@@ -8,13 +8,11 @@ use futures::stream::StreamExt;
 
 use crate::error::BeaconResult;
 
-const N: f32 = 20.0;
-
 #[derive(Debug)]
 pub struct Listener;
 
 impl Listener {
-  pub async fn listen(tx: Sender<(BDAddr, Option<f32>)>) -> BeaconResult<()> {
+  pub async fn listen(tx: Sender<BDAddr>) -> BeaconResult<()> {
     log::debug!("Starting BLE listen...");
     let manager = Manager::new().await?;
 
@@ -38,15 +36,7 @@ impl Listener {
           if let Ok(peripheral) = central.peripheral(&id).await {
             // we can ignore this error, if it fails the means something failed elsewhere and the program will soon end
             log::debug!("Address: {:?}", &peripheral.address());
-            let distance = peripheral.properties().await.ok().flatten().and_then(|properties| {
-              log::debug!("Props: {:?} {:?}", &properties.rssi, &properties.tx_power_level);
-
-              match (properties.rssi, properties.tx_power_level) {
-                (Some(rssi), Some(power)) => (Some(10f32.powf((power as f32 - rssi as f32) / N))),
-                _ => None,
-              }
-            });
-            tx.send((peripheral.address(), distance)).ok();
+            tx.send(peripheral.address()).ok();
           }
         }
         _ => (),
