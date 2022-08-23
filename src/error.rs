@@ -21,12 +21,3 @@ pub enum BeaconError {
   #[error(transparent)]
   Btleplug(#[from] btleplug::Error),
 }
-
-#[cfg(target_os = "linux")]
-impl From<rumble::Error> for BeaconError {
-  fn from(err: rumble::Error) -> Self {
-    // rumble uses an outdated error handling crate that doesn't use Error
-    // thus we need to convert ourselves
-    BeaconError::Rumble(err.to_string())
-  }
-}
