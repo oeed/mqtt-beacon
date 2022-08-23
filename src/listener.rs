@@ -35,6 +35,7 @@ impl Listener {
         CentralEvent::DeviceDiscovered(id) | CentralEvent::DeviceUpdated(id) => {
           if let Ok(peripheral) = central.peripheral(&id).await {
             // we can ignore this error, if it fails the means something failed elsewhere and the program will soon end
+            log::debug!("Address: {:?}", &peripheral.address());
             tx.send(peripheral.address()).ok();
           }
         }
