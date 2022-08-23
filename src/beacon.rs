@@ -22,14 +22,14 @@ struct PresencePayload<'a> {
 }
 
 impl BeaconConfig {
-  pub fn on_discovery(&self, discovered_address: BDAddr, send_channel: &PublishSender) {
+  pub fn on_discovery(&self, discovered_address: BDAddr, distance: Option<f32>, send_channel: &PublishSender) {
     if discovered_address == self.beacon_address {
       log::debug!("Discovered known beacon: {}", &self.topic);
 
       let payload = PresencePayload {
         device_id: &self.device_id,
         name: &self.device_id,
-        distance: 1.0,
+        distance: distance.unwrap_or(1.0),
       };
 
       // this is the beacon, publish

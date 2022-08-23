@@ -22,15 +22,15 @@ async fn run() -> BeaconError {
 
   let (send_channel, mut client) = MqttClient::with_config("mqtt-beacon", config.mqtt_client);
 
-  let (tx, rx) = channel::<BDAddr>();
+  let (tx, rx) = channel::<(BDAddr, Option<f32>)>();
   let listen = tokio::task::spawn(async move { Listener::listen(tx).await });
 
   let process_addresses = tokio::task::spawn_blocking(move || loop {
     match rx.recv() {
-      Ok(address) => {
-        log::debug!("Discovered: {:?}", &address);
+      Ok((address, distance)) => {
+        log::debug!("Discovered: {:?} (dist: {})", &address, distance.unwrap_or(-1.));
         for beacon_config in &config.beacons {
-          beacon_config.on_discovery(address, &send_channel);
+          beacon_config.on_discovery(address, distance, &send_channel);
         }
       }
       Err(err) => return Err::<(), BeaconError>(err.into()),
