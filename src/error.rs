@@ -14,13 +14,12 @@ pub enum BeaconError {
   MQTTConnection(#[from] rumqttc::ConnectionError),
   #[error(transparent)]
   JoinError(#[from] JoinError),
-  #[cfg(target_os = "linux")]
-  #[error("rumble error: {0}")]
-  Rumble(String),
   #[error(transparent)]
   MpscRecv(#[from] RecvError),
   #[error(transparent)]
   Garage(#[from] GarageError),
+  #[error(transparent)]
+  Btleplug(#[from] btleplug::Error),
 }
 
 #[cfg(target_os = "linux")]

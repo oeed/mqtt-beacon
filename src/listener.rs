@@ -1,11 +1,8 @@
 use std::sync::mpsc::{channel, Receiver};
 
-use btleplug::api::BDAddr;
-#[cfg(target_os = "linux")]
-use rumble::{
-  api::{Central, CentralEvent},
-  bluez::manager::Manager,
-};
+use btleplug::api::{BDAddr, Central, CentralEvent, Manager as _, Peripheral, ScanFilter};
+use btleplug::platform::Manager;
+use futures::stream::StreamExt;
 
 use crate::error::BeaconResult;
 
@@ -13,54 +10,37 @@ use crate::error::BeaconResult;
 pub struct Listener;
 
 impl Listener {
-  #[cfg(target_os = "linux")]
-  pub fn listen() -> BeaconResult<Receiver<BDAddr>> {
+  pub async fn listen() -> BeaconResult<Receiver<BDAddr>> {
     log::debug!("Starting BLE listen...");
     let (tx, rx) = channel();
-    let manager = Manager::new()?;
+
+    let manager = Manager::new().await?;
 
     // get the first bluetooth adapter
-    let adapters = manager.adapters()?;
-    let mut adapter = adapters.into_iter().nth(0).unwrap();
-
-    // reset the adapter -- clears out any errant state
-    adapter = manager.down(&adapter)?;
-    adapter = manager.up(&adapter)?;
-
     // connect to the adapter
-    let central = adapter.connect()?;
-    central.active(false);
-    central.filter_duplicates(false);
-    // start scanning for devices
-    central.start_scan()?;
+    let adapters = manager.adapters().await.unwrap();
+    let central = adapters.into_iter().nth(0).unwrap();
 
-    central.on_event(Box::new(move |event| {
+    let mut events = central.events().await?;
+
+    // start scanning for devices
+    central.start_scan(ScanFilter::default()).await?;
+
+    // Print based on whatever the event receiver outputs. Note that the event
+    // receiver blocks, so in a real program, this should be run in its own
+    // thread (not task, as this library does not yet use async channels).
+    while let Some(event) = events.next().await {
       log::debug!("BLE event: {:?}", &event);
       match event {
-        CentralEvent::DeviceDiscovered(address) | CentralEvent::DeviceUpdated(address) => {
-          let addr = address.address;
-          // rumble stores the address backwards for some reason
-          let address = [addr[5], addr[4], addr[3], addr[2], addr[1], addr[0]];
-          // we can ignore this error, if it fails the means something failed elsewhere and the program will soon end
-          tx.send(BDAddr::from(address)).ok();
+        CentralEvent::DeviceDiscovered(id) | CentralEvent::DeviceUpdated(id) => {
+          if let Ok(peripheral) = central.peripheral(&id).await {
+            // we can ignore this error, if it fails the means something failed elsewhere and the program will soon end
+            tx.send(peripheral.address()).ok();
+          }
         }
         _ => (),
       }
-    }));
-
-    Ok(rx)
-  }
-
-  #[cfg(target_os = "macos")]
-  pub fn listen() -> BeaconResult<Receiver<BDAddr>> {
-    let (tx, rx) = channel();
-    std::thread::spawn(move || {
-      loop {
-        // just demo/debug
-        tx.send("01:23:45:67:89:AB".parse().unwrap()).unwrap();
-        std::thread::sleep(std::time::Duration::from_secs(2));
-      }
-    });
+    }
 
     Ok(rx)
   }

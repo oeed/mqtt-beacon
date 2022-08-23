@@ -21,8 +21,8 @@ async fn run() -> BeaconError {
 
   let (send_channel, mut client) = MqttClient::with_config("mqtt-beacon", config.mqtt_client);
 
-  let listen = tokio::task::spawn_blocking(move || {
-    let rx = Listener::listen()?;
+  let listen = tokio::task::spawn(async move {
+    let rx = Listener::listen().await?;
     loop {
       match rx.recv() {
         Ok(address) => {
