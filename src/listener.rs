@@ -1,7 +1,9 @@
-use std::sync::mpsc::{channel, Receiver};
+use std::sync::mpsc::Sender;
 
-use btleplug::api::{BDAddr, Central, CentralEvent, Manager as _, Peripheral, ScanFilter};
-use btleplug::platform::Manager;
+use btleplug::{
+  api::{BDAddr, Central, CentralEvent, Manager as _, Peripheral, ScanFilter},
+  platform::Manager,
+};
 use futures::stream::StreamExt;
 
 use crate::error::BeaconResult;
@@ -10,10 +12,8 @@ use crate::error::BeaconResult;
 pub struct Listener;
 
 impl Listener {
-  pub async fn listen() -> BeaconResult<Receiver<BDAddr>> {
+  pub async fn listen(tx: Sender<BDAddr>) -> BeaconResult<()> {
     log::debug!("Starting BLE listen...");
-    let (tx, rx) = channel();
-
     let manager = Manager::new().await?;
 
     // get the first bluetooth adapter
@@ -43,6 +43,6 @@ impl Listener {
       }
     }
 
-    Ok(rx)
+    Ok(())
   }
 }

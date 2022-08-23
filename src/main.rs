@@ -1,5 +1,6 @@
-use std::fs;
+use std::{fs, sync::mpsc::channel};
 
+use btleplug::api::BDAddr;
 use mqtt_beacon::{
   config::Config,
   error::{BeaconError, BeaconResult},
@@ -21,18 +22,18 @@ async fn run() -> BeaconError {
 
   let (send_channel, mut client) = MqttClient::with_config("mqtt-beacon", config.mqtt_client);
 
-  let listen = tokio::task::spawn(async move {
-    let rx = Listener::listen().await?;
-    loop {
-      match rx.recv() {
-        Ok(address) => {
-          log::debug!("Discovered: {:?}", &address);
-          for beacon_config in &config.beacons {
-            beacon_config.on_discovery(address, &send_channel);
-          }
+  let (tx, rx) = channel::<BDAddr>();
+  let listen = tokio::task::spawn(async move { Listener::listen(tx).await });
+
+  let process_addresses = tokio::task::spawn_blocking(move || loop {
+    match rx.recv() {
+      Ok(address) => {
+        log::debug!("Discovered: {:?}", &address);
+        for beacon_config in &config.beacons {
+          beacon_config.on_discovery(address, &send_channel);
         }
-        Err(err) => return Err::<(), BeaconError>(err.into()),
       }
+      Err(err) => return Err::<(), BeaconError>(err.into()),
     }
   });
 
@@ -45,9 +46,14 @@ async fn run() -> BeaconError {
   let send = tokio::spawn(async move { sender.send_messages().await });
 
   // the two tasks will only end if an error occurs (most likely MQTT broker disconnection)
-  tokio::try_join!(flatten(receive), flatten(send), flatten(listen))
-    .unwrap_err()
-    .into()
+  tokio::try_join!(
+    flatten(receive),
+    flatten(send),
+    flatten(listen),
+    flatten(process_addresses)
+  )
+  .unwrap_err()
+  .into()
 }
 
 async fn flatten<T, E: Into<BeaconError>>(handle: JoinHandle<Result<T, E>>) -> Result<T, BeaconError> {
