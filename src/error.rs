@@ -1,8 +1,7 @@
-use std::sync::mpsc::RecvError;
-
+use btleplug::api::BDAddr;
 use mqtt_garage::error::GarageError;
 use thiserror::Error;
-use tokio::task::JoinError;
+use tokio::{sync::mpsc::error::SendError, task::JoinError};
 
 pub type BeaconResult<T> = Result<T, BeaconError>;
 
@@ -15,9 +14,11 @@ pub enum BeaconError {
   #[error(transparent)]
   JoinError(#[from] JoinError),
   #[error(transparent)]
-  MpscRecv(#[from] RecvError),
+  MpscSend(#[from] SendError<BDAddr>),
   #[error(transparent)]
   Garage(#[from] GarageError),
   #[error(transparent)]
   Btleplug(#[from] btleplug::Error),
+  #[error("Channel closed")]
+  EmptyChannel,
 }

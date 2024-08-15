@@ -1,39 +1,50 @@
-use std::{fs, sync::mpsc::channel};
+use std::fs;
 
 use btleplug::api::BDAddr;
 use mqtt_beacon::{
+  beacon::TrackedBeacon,
   config::Config,
   error::{BeaconError, BeaconResult},
   listener::Listener,
 };
 use mqtt_garage::mqtt_client::MqttClient;
-use tokio::task::JoinHandle;
+use tokio::{sync::mpsc, task::JoinHandle};
 
 #[tokio::main]
 async fn main() -> BeaconResult<()> {
   env_logger::init();
 
-  Err(run().await)
-}
-
-async fn run() -> BeaconError {
   let config = fs::read_to_string("beacon-config.toml").expect("unable to read beacon-config.toml");
   let config: Config = toml::from_str(&config).expect("unable to parse beacon-config.toml");
 
-  let (send_channel, mut client) = MqttClient::with_config("mqtt-beacon", config.mqtt_client);
+  let (send_channel2, mut client) = MqttClient::with_config("mqtt-beacon", config.mqtt_client);
+  let send_channel: &'static tokio::sync::mpsc::UnboundedSender<mqtt_garage::mqtt_client::MqttPublish> =
+    Box::leak(Box::new(send_channel2));
 
-  let (tx, rx) = channel::<BDAddr>();
+  let beacons: &'static Vec<_> = Box::leak(Box::new(
+    config
+      .beacons
+      .into_iter()
+      .map(|beacon| TrackedBeacon::new(beacon, &send_channel))
+      .collect(),
+  ));
+
+  let (tx, mut rx) = mpsc::unbounded_channel::<BDAddr>();
   let listen = tokio::task::spawn(async move { Listener::listen(tx).await });
 
-  let process_addresses = tokio::task::spawn_blocking(move || loop {
-    match rx.recv() {
-      Ok(address) => {
-        log::debug!("Discovered: {:?}", &address);
-        for beacon_config in &config.beacons {
-          beacon_config.on_discovery(address, &send_channel);
+  let process_addresses = tokio::task::spawn(async move {
+    loop {
+      match rx.recv().await {
+        Some(address) => {
+          log::debug!("Discovered: {:?}", &address);
+          for beacon in beacons {
+            if beacon.matches_address(&address) {
+              beacon.on_discovery().await;
+            }
+          }
         }
+        None => return Err::<(), _>(BeaconError::EmptyChannel), // channel close
       }
-      Err(err) => return Err::<(), BeaconError>(err.into()),
     }
   });
 
@@ -52,8 +63,8 @@ async fn run() -> BeaconError {
     flatten(listen),
     flatten(process_addresses)
   )
-  .unwrap_err()
-  .into()
+  .unwrap_err();
+  Ok(())
 }
 
 async fn flatten<T, E: Into<BeaconError>>(handle: JoinHandle<Result<T, E>>) -> Result<T, BeaconError> {

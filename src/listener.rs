@@ -1,10 +1,9 @@
-use std::sync::mpsc::Sender;
-
 use btleplug::{
   api::{BDAddr, Central, CentralEvent, Manager as _, Peripheral, ScanFilter},
   platform::Manager,
 };
 use futures::stream::StreamExt;
+use tokio::sync::mpsc;
 
 use crate::error::BeaconResult;
 
@@ -12,7 +11,7 @@ use crate::error::BeaconResult;
 pub struct Listener;
 
 impl Listener {
-  pub async fn listen(tx: Sender<BDAddr>) -> BeaconResult<()> {
+  pub async fn listen(tx: mpsc::UnboundedSender<BDAddr>) -> BeaconResult<()> {
     log::debug!("Starting BLE listen...");
     let manager = Manager::new().await?;
 
@@ -36,7 +35,7 @@ impl Listener {
           if let Ok(peripheral) = central.peripheral(&id).await {
             // we can ignore this error, if it fails the means something failed elsewhere and the program will soon end
             log::debug!("Address: {:?}", &peripheral.address());
-            tx.send(peripheral.address()).ok();
+            tx.send(peripheral.address())?;
           }
         }
         _ => (),
