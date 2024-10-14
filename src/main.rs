@@ -62,8 +62,7 @@ async fn main() -> BeaconResult<()> {
     flatten(send),
     flatten(listen),
     flatten(process_addresses)
-  )
-  .unwrap_err();
+  )?;
   Ok(())
 }
 
